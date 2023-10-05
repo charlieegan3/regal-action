@@ -1,0 +1,14 @@
+name: "Setup Regal"
+description: Sets up Regal, the Rego linter for OPA.
+inputs:
+  version:
+    description: Version of Regal to install.
+    required: false
+    default: latest
+  github-token:
+    description: 'The GitHub access token (e.g. secrets.GITHUB_TOKEN) used to get the list of Regal CLI versions. This defaults to {{ github.token }}.'
+    default: '${{ github.token }}'
+    required: false
+runs:
+  using: node16
+  main: dist/index.js

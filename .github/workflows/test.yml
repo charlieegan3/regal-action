@@ -1,0 +1,53 @@
+name: Test Setup Regal
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        version: ["<0.9", "0.10.0", "latest"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Regal
+        uses: ./
+        with:
+          version: ${{ matrix.version }}
+
+      - name: Get expected version
+        run: |
+          if [ "${{ matrix.version }}" = "<0.9" ]; then
+            export EXPECTED_VERSION=v0.8.0
+          elif [ "${{ matrix.version }}" = "0.10.0" ]; then
+            export EXPECTED_VERSION=v0.10.0
+          else
+            # get the latest version info from the github api
+            export EXPECTED_VERSION=$(curl --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/StyraInc/regal/releases/latest | jq -r .name )
+          fi
+          echo "Expected version for ${{ matrix.version }}: $EXPECTED_VERSION"
+          echo "EXPECTED_VERSION=$EXPECTED_VERSION" >> $GITHUB_ENV
+      - name: Capture version installed
+        run: |
+          echo "VERSION_INSTALLED=$( regal version | head -1 | echo "v$(awk '{ print $2}')" )" >> $GITHUB_ENV
+      - name: Verify
+        shell: bash
+        run: |
+          if [ "$EXPECTED_VERSION" != "$VERSION_INSTALLED" ]; then
+            echo "Unexpected version, expected $EXPECTED_VERSION, got: $VERSION_INSTALLED"
+            exit 1;
+          fi
+          exit 0;
+
